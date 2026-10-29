@@ -21,12 +21,13 @@ their own songs in a simple editor.
 - Strict, unforgiving judging: the first mistake loses.
 - A simple song editor to create, preview, save and play songs.
 - A few built-in beginner songs.
+- Scoring that shows how well the player played (see Scoring).
 
 ## Non-goals (for now)
 
 - Sharing songs between players/devices.
 - Touch-screen / tablet support (desktop or laptop browser assumed).
-- Scores, combos, lives, leaderboards — a run is simply won or lost.
+- Lives, online leaderboards — the first mistake still ends the run.
 - Instruments other than a soprano recorder.
 - Importing MIDI or sheet music.
 
@@ -99,6 +100,24 @@ The user picked option 1.
 - Reaching the end of the song without a mistake → win.
 - On losing, the game shows what went wrong (wrong note / too early / too
   late / let go too early) and offers to retry.
+
+### Scoring
+
+*(Agreed with the user.)*
+
+- Every note is rated by how close its start was to the beat: **Perfect**,
+  **Great** or **Good** (Good = anything else inside the window). Rating
+  bands scale with the mode's window, so recorder mode isn't penalised for
+  detection delay.
+- Hold tiles earn a bonus for being held to the very end (not just to the
+  end allowance).
+- Points per rating, plus a combo bonus for consecutive Perfects.
+- Results screen: score, count of each rating, accuracy percentage. On a
+  loss it also shows how far into the song the player got and the score up
+  to that point.
+- Best score saved per song, separately for keyboard and recorder mode
+  (browser storage).
+- Exact point values and band widths are builder's tuning constants.
 
 ### Recorder mode
 
