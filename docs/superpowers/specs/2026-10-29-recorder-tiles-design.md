@@ -137,6 +137,22 @@ The user picked option 1.
 A few beginner songs using few notes (e.g. *Hot Cross Buns*, *Mary Had a
 Little Lamb*), typed in by the builder.
 
+## Testing recorder mode
+
+The user will play recorder mode but will **not** take part in tuning
+sessions or supply recordings. So:
+
+- Detection and judging are tested automatically with **synthesised
+  recorder-like audio** (generated tones with attack, breath noise, slight
+  detuning, tongued repeats and silence gaps) fed through the same pipeline
+  as the microphone.
+- The mic check screen shows the detected note live, so the player can see
+  whether the game hears them correctly before playing.
+- Detection thresholds and timing windows live in one settings object so
+  they can be adjusted quickly if real playing exposes problems.
+- Known risk: synthetic audio is not a real recorder in a real room; some
+  tuning after the user first plays is likely.
+
 ## Left to the builder
 
 - Project tooling (bundler, test runner) and file layout.
