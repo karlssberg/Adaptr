@@ -21,8 +21,11 @@ npm test                     # unit tests
 npm run build && npm run e2e # production build, then browser smoke test
 ```
 
-The smoke test uses Playwright, which is not a project dependency. It looks for
-a globally installed copy.
+The smoke test needs Playwright, which is not a project dependency: install it
+globally with `npm i -g playwright`, then download its browser with
+`npx playwright install chromium`. The test looks for Playwright in the project,
+then in the global npm root (`npm root -g`), then in `/opt/node22`, where this
+project's dev container has it.
 
 ## How to play
 
@@ -36,7 +39,7 @@ menu first to confirm the game hears you and to see which note it detects.
 Tongue repeated notes (a short "tu") so the game can tell them apart.
 
 The first mistake loses: a wrong note, playing too early or too late, or
-letting go of a long note early.
+letting go of a long note early. Press **Esc** to leave a game at any time.
 
 Hits are rated by timing:
 
@@ -58,6 +61,9 @@ column is a recorder note and each row is a step in time.
 - **Preview** plays the song (press again to stop), **Try it** plays it as a
   game, **Save** stores it, and **Delete** removes it (shown only for saved
   songs).
+- After **Try it**, **Back to editor** returns to the song with your unsaved
+  changes intact. Scores from **Try it** are not recorded as bests.
+- **Back** asks before discarding unsaved changes.
 
 Songs are stored in this browser only. Built-in songs cannot be edited.
 

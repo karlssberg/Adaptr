@@ -1,13 +1,38 @@
-import { spawn } from 'node:child_process'
+import { execSync, spawn } from 'node:child_process'
 import { createRequire } from 'node:module'
+import path from 'node:path'
 
+// Playwright is not a project dependency. Look for it locally, then in the global npm
+// root, then in the path used by this project's dev container.
 const require = createRequire(import.meta.url)
-let chromium
-try {
-  ;({ chromium } = require('playwright'))
-} catch {
-  ;({ chromium } = require('/opt/node22/lib/node_modules/playwright'))
+function globalNpmRoot() {
+  try {
+    return execSync('npm root -g', { encoding: 'utf8' }).trim()
+  } catch {
+    return null
+  }
 }
+function loadPlaywright() {
+  const candidates = [
+    () => require('playwright'),
+    () => {
+      const root = globalNpmRoot()
+      if (!root) throw new Error('npm root -g failed')
+      return require(path.join(root, 'playwright'))
+    },
+    () => require('/opt/node22/lib/node_modules/playwright'),
+  ]
+  for (const load of candidates) {
+    try {
+      return load()
+    } catch {
+      // try the next location
+    }
+  }
+  console.error('✗ Playwright not found. Install it with `npm i -g playwright`, then `npx playwright install chromium`.')
+  process.exit(1)
+}
+const { chromium } = loadPlaywright()
 
 const URL = 'http://localhost:4173/'
 const SONGS = ['Hot Cross Buns', 'Mary Had a Little Lamb']
