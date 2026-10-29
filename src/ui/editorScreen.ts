@@ -62,8 +62,26 @@ export function mountEditor(
   const status = el('span', 'editor-status')
   bar.append(nameInput, bpmLabel)
 
+  // Confirmations are in-page (click twice) because window.confirm() is
+  // blocked in some embedded viewers, where it always returns false.
+  const armed = new Map<HTMLButtonElement, number>()
+  const confirmClick = (btn: HTMLButtonElement, label: string, question: string): boolean => {
+    if (armed.has(btn)) {
+      window.clearTimeout(armed.get(btn))
+      armed.delete(btn)
+      btn.textContent = label
+      return true
+    }
+    btn.textContent = question
+    armed.set(btn, window.setTimeout(() => {
+      armed.delete(btn)
+      btn.textContent = label
+    }, 3000))
+    return false
+  }
+
   const backBtn = button('btn', 'Back', () => {
-    if (unsaved && !confirm('Discard unsaved changes?')) return
+    if (unsaved && !confirmClick(backBtn, 'Back', 'Discard changes?')) return
     actions.back()
   })
   const previewBtn = button('btn', 'Preview', () => void togglePreview())
@@ -73,7 +91,7 @@ export function mountEditor(
     if (validateSong(song)) actions.tryIt(copySong(song), unsaved)
   })
   const deleteBtn = button('btn', 'Delete', () => {
-    if (!confirm(`Delete "${song.name}"?`)) return
+    if (!confirmClick(deleteBtn, 'Delete', 'Really delete?')) return
     if (!deleteUserSong(store, song.id)) {
       status.textContent = "Couldn't delete"
       return
