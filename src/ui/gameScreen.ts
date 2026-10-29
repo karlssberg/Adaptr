@@ -6,10 +6,13 @@ import { FALL_MS, GameSession, LEAD_IN_MS } from '../game/session'
 import type { Mode } from '../game/settings'
 import { createKeyHandler, keysForLanes } from '../input/keyboard'
 import { laneLabels, laneNotes, type Song } from '../songs/song'
+import { fingeringFor } from '../music/fingerings'
+import { diagramHeight, drawFingering } from './fingeringDiagram'
 
-const HIT_LINE = 0.85
+const HIT_LINE = 0.78
 const END_LINGER_MS = 600
-const LABEL_SPACE = 44
+const LABEL_TOP = 6
+const MAX_DOT = 14
 
 const COLORS = {
   bg: '#14161c',
@@ -37,6 +40,7 @@ export function mountGame(
   const lanes = laneNotes(song)
   const labels = laneLabels(lanes)
   const keys = mode === 'keyboard' ? keysForLanes(lanes.length).map((k) => k.toUpperCase()) : null
+  const fingerings = lanes.map(fingeringFor)
 
   root.replaceChildren()
   const canvas = document.createElement('canvas')
@@ -146,22 +150,36 @@ export function mountGame(
       ctx.fillRect(lane * laneW + 3, top + 1, laneW - 6, Math.max(2, bottom - top - 2))
     }
 
+    // Repaint the area under the hit line so held tiles don't cover the labels.
+    for (let i = 0; i < n; i++) {
+      ctx.fillStyle = i === lostLane && flash ? COLORS.lost : i % 2 ? COLORS.laneAlt : COLORS.bg
+      ctx.fillRect(i * laneW, hitY, laneW, height - hitY)
+    }
     ctx.fillStyle = COLORS.line
     ctx.fillRect(0, hitY - 1, width, 3)
 
+    // Below the hit line each lane shows its note name, its key (keyboard mode) and how to
+    // finger it, scaled down to fit narrow lanes and short windows.
     ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    const labelY = hitY + Math.min(LABEL_SPACE, height - hitY) / 2
+    ctx.textBaseline = 'top'
+    const textH = keys ? 34 : 20
+    const diagramTop = hitY + LABEL_TOP + textH + 4
+    const dot = Math.min(MAX_DOT, laneW / 3.2, (height - diagramTop - 4) / diagramHeight(1))
     for (let i = 0; i < n; i++) {
       const x = (i + 0.5) * laneW
       ctx.fillStyle = COLORS.text
       ctx.font = 'bold 16px system-ui, sans-serif'
-      ctx.fillText(labels[i], x, keys ? labelY - 9 : labelY)
+      ctx.fillText(labels[i], x, hitY + LABEL_TOP)
       if (keys) {
         ctx.font = '12px system-ui, sans-serif'
-        ctx.fillText(keys[i], x, labelY + 10)
+        ctx.fillText(keys[i], x, hitY + LABEL_TOP + 19)
+      }
+      const fingering = fingerings[i]
+      if (fingering && dot >= 3) {
+        drawFingering(ctx, fingering, x + dot * 0.45, diagramTop, dot, { ink: COLORS.text, paper: COLORS.bg })
       }
     }
+    ctx.textBaseline = 'middle'
 
     const firstAt = s.tiles[0]?.startMs ?? now
     if (now < firstAt && firstAt - now <= LEAD_IN_MS) {

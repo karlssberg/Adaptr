@@ -1,6 +1,8 @@
 import { playSong } from '../audio/player'
 import { STEP_BEATS, extendTo, toggleCell } from '../editor/editorModel'
 import { RECORDER_NOTES } from '../music/notes'
+import { fingeringFor } from '../music/fingerings'
+import { diagramHeight, drawFingering } from './fingeringDiagram'
 import { validateSong, type Song } from '../songs/song'
 import { deleteUserSong, loadUserSongs, safeLocalStorage, saveUserSong } from '../songs/storage'
 
@@ -118,10 +120,39 @@ export function mountEditor(
     return Math.max(MIN_ROWS, Math.ceil(lastEnd / STEP_BEATS) + EXTRA_ROWS)
   }
 
+  /** Column header: the note name over a small picture of how to finger it. */
+  function headCell(note: string): HTMLElement {
+    const head = el('div', 'editor-head', note)
+    const fingering = fingeringFor(note)
+    if (!fingering) return head
+    const dot = 6
+    const w = 22
+    const h = Math.ceil(diagramHeight(dot)) + 2
+    const canvas = document.createElement('canvas')
+    canvas.className = 'editor-fingering'
+    const dpr = window.devicePixelRatio || 1
+    canvas.width = w * dpr
+    canvas.height = h * dpr
+    canvas.style.width = `${w}px`
+    canvas.style.height = `${h}px`
+    canvas.setAttribute('aria-hidden', 'true')
+    const ctx = canvas.getContext('2d')
+    if (ctx) {
+      const css = getComputedStyle(document.documentElement)
+      ctx.scale(dpr, dpr)
+      drawFingering(ctx, fingering, w / 2 + 3, 1, dot, {
+        ink: css.getPropertyValue('--fg').trim() || '#1c2030',
+        paper: css.getPropertyValue('--card').trim() || '#ffffff',
+      })
+    }
+    head.append(canvas)
+    return head
+  }
+
   function buildGrid(): void {
     rowCount = neededRows()
     grid.replaceChildren()
-    RECORDER_NOTES.forEach((n) => grid.append(el('div', 'editor-head', n)))
+    RECORDER_NOTES.forEach((n) => grid.append(headCell(n)))
     cells = []
     for (let r = 0; r < rowCount; r++) {
       const rowCells: HTMLElement[] = []
