@@ -50,9 +50,10 @@ export class GameSession implements NoteEvents {
     this.judge.noteOff(t)
   }
 
+  /** Ticks the judge tickLagMs behind `now`, so input events that arrive late still count. */
   tick(now: number): void {
     if (this.status !== 'playing') return
-    this.judge.tick(now)
+    this.judge.tick(now - this.settings.tickLagMs)
   }
 
   abandon(): void {

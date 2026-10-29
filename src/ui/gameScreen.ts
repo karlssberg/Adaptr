@@ -109,7 +109,7 @@ export function mountGame(
     const n = lanes.length
     const laneW = width / n
     const hitY = height * HIT_LINE
-    const speed = height / FALL_MS
+    const speed = hitY / FALL_MS
     const loss = s.judge.loss
     const flash = loss !== undefined && Math.floor(now / 100) % 2 === 0
     const lostLane = loss ? lanes.indexOf(s.tiles[loss.index].note) : -1

@@ -74,4 +74,20 @@ describe('GameSession', () => {
     s.noteOff(T0 + 1000)
     expect(s.sounding).toBeNull()
   })
+
+  it('recorder mode ticks the judge tickLagMs behind, so a late tracker noteOn still hits', () => {
+    const s = new GameSession(song, 'recorder', START)
+    s.tick(T0 + 280)
+    expect(s.status).toBe('playing')
+    s.noteOn('G4', T0 + 200)
+    expect(s.status).toBe('playing')
+    expect(s.judge.hits).toEqual([{ index: 0, offsetMs: 200, fullHold: false }])
+  })
+
+  it('keyboard mode ticks with no lag', () => {
+    const s = new GameSession(song, 'keyboard', START)
+    s.tick(T0 + 151)
+    expect(s.status).toBe('lost')
+    expect(s.judge.loss?.reason).toBe('too-late')
+  })
 })
