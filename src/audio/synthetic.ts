@@ -1,5 +1,6 @@
 import { PitchDetector } from 'pitchy'
 import { soundingFrequency, type NoteName } from '../music/notes'
+import { computeFrame } from './frame'
 import type { Frame } from './noteTracker'
 
 export interface SyntheticEvent {
@@ -79,16 +80,14 @@ export function renderSynthetic(events: SyntheticEvent[], opts: SyntheticOptions
 /**
  * Sliding-window pitch analysis. Pitch uses the full `size` window; rms uses only the
  * newest `hop` samples of each window so a ~30 ms tongue gap shows up as a dip
- * (the live mic glue computes rms the same way). `t` is the window centre in ms.
+ * (see computeFrame, shared with the live mic). `t` is the window centre in ms.
  */
 export function analyse(buf: Float32Array, sampleRate: number, hop = 512, size = 2048): Frame[] {
   const detector = PitchDetector.forFloat32Array(size)
   const frames: Frame[] = []
   for (let start = 0; start + size <= buf.length; start += hop) {
-    const [pitchHz, clarity] = detector.findPitch(buf.subarray(start, start + size), sampleRate)
-    let sum = 0
-    for (let i = start + size - hop; i < start + size; i++) sum += buf[i] * buf[i]
-    frames.push({ t: ((start + size / 2) / sampleRate) * 1000, pitchHz, clarity, rms: Math.sqrt(sum / hop) })
+    const window = buf.subarray(start, start + size)
+    frames.push(computeFrame(window, sampleRate, hop, detector, ((start + size / 2) / sampleRate) * 1000))
   }
   return frames
 }
