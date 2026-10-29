@@ -96,6 +96,59 @@ describe('NoteTracker', () => {
     expect(events).toEqual([['on', 'A4', 0], ['off', 200], ['on', 'A4', 230]])
   })
 
+  // Mid-note wobble: one bad frame (clarity or pitch) while the volume stays up must not
+  // become a re-attack — a re-attack would release the held tile early ("released-early").
+  test('a single low-clarity frame with healthy rms mid-note emits nothing', () => {
+    const { events, tracker } = setup()
+    const all = [...frames(0, 200, {}), ...frames(200, 210, { clarity: 0.5 }), ...frames(210, 400, {})]
+    for (const f of all) tracker.push(f)
+    expect(events).toEqual([['on', 'A4', 0]])
+    expect(tracker.current).toBe('A4')
+  })
+
+  test('a single out-of-range pitch frame (octave error) with healthy rms mid-note emits nothing', () => {
+    const { events, tracker } = setup()
+    const all = [...frames(0, 200, {}), ...frames(200, 210, { pitchHz: 200 }), ...frames(210, 400, {})]
+    for (const f of all) tracker.push(f)
+    expect(events).toEqual([['on', 'A4', 0]])
+  })
+
+  test('three consecutive low-clarity frames with healthy rms emit nothing', () => {
+    const { events, tracker } = setup()
+    const all = [...frames(0, 200, {}), ...frames(200, 230, { clarity: 0.5 }), ...frames(230, 400, {})]
+    for (const f of all) tracker.push(f)
+    expect(events).toEqual([['on', 'A4', 0]])
+  })
+
+  test('a long low-clarity run with healthy rms is still sounding, not a release', () => {
+    const { events, tracker } = setup()
+    const all = [...frames(0, 200, {}), ...frames(200, 400, { clarity: 0.5 }), ...frames(400, 500, {})]
+    for (const f of all) tracker.push(f)
+    expect(events).toEqual([['on', 'A4', 0]])
+    expect(tracker.current).toBe('A4')
+  })
+
+  test('a wobble frame then a quiet gap then the same note re-attacks from the wobble frame', () => {
+    const { events, tracker } = setup()
+    const all = [
+      ...frames(0, 200, {}),
+      ...frames(200, 210, { clarity: 0.5 }),
+      ...silence(210, 230),
+      ...frames(230, 400, {}),
+    ]
+    for (const f of all) tracker.push(f)
+    expect(events).toEqual([['on', 'A4', 0], ['off', 200], ['on', 'A4', 230]])
+  })
+
+  test('a dip followed by silence releases at the dip start (the earlier of the two)', () => {
+    const { events, tracker } = setup()
+    for (const f of [...frames(0, 200, {}), ...frames(200, 220, { rms: 0.09 }), ...silence(220, 320)]) {
+      tracker.push(f)
+    }
+    expect(events).toEqual([['on', 'A4', 0], ['off', 200]])
+    expect(tracker.current).toBeNull()
+  })
+
   test('low-clarity frames never start a note', () => {
     const { events, tracker } = setup()
     for (const f of frames(0, 500, { clarity: 0.5 })) tracker.push(f)
