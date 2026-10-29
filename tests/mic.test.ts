@@ -6,7 +6,7 @@ const reject = (name: string) => () => Promise.reject(new DOMException('x', name
 describe('startMic errors', () => {
   it('maps NotAllowedError to a blocked message', async () => {
     const r = await startMic(() => {}, { getUserMedia: reject('NotAllowedError') })
-    expect(r).toEqual({ ok: false, message: 'Microphone access was blocked. Allow it in the browser and try again.' })
+    expect(r).toEqual({ ok: false, message: 'The microphone is blocked here. Allow it in your browser, or open the game from its own website to play in Recorder mode.' })
   })
   it('maps NotFoundError to no microphone', async () => {
     const r = await startMic(() => {}, { getUserMedia: reject('NotFoundError') })

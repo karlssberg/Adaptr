@@ -5,6 +5,12 @@ them on time, either on your computer keyboard or on a real recorder picked up
 by your microphone. The first mistake ends the song. There is also a song
 editor for making your own tunes.
 
+## Play online
+
+https://karlssberg.github.io/Adaptr/ — published by `.github/workflows/deploy.yml`
+on every push to `main`. One-time setup: in the repository's **Settings → Pages**,
+set **Source** to **GitHub Actions**.
+
 ## Requirements
 
 - Node 22 or newer

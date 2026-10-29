@@ -15,7 +15,7 @@ const HOP = 512
 function failure(e: unknown): MicResult {
   const name = e instanceof Error || e instanceof DOMException ? e.name : ''
   if (name === 'NotAllowedError') {
-    return { ok: false, message: 'Microphone access was blocked. Allow it in the browser and try again.' }
+    return { ok: false, message: 'The microphone is blocked here. Allow it in your browser, or open the game from its own website to play in Recorder mode.' }
   }
   if (name === 'NotFoundError') return { ok: false, message: 'No microphone found.' }
   return { ok: false, message: "Couldn't start the microphone." }
