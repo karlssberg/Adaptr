@@ -63,7 +63,10 @@ export function mountEditor(
   })
   const deleteBtn = button('btn', 'Delete', () => {
     if (!confirm(`Delete "${song.name}"?`)) return
-    deleteUserSong(store, song.id)
+    if (!deleteUserSong(store, song.id)) {
+      status.textContent = "Couldn't delete"
+      return
+    }
     actions.back()
   })
   const buttons = el('div', 'editor-actions')
@@ -182,7 +185,10 @@ export function mountEditor(
   }
   document.addEventListener('pointermove', onMove)
   document.addEventListener('pointerup', onUp)
-  document.addEventListener('pointercancel', onUp)
+  const onCancel = () => {
+    drag = null
+  }
+  document.addEventListener('pointercancel', onCancel)
 
   // --- inputs ---
   nameInput.addEventListener('input', () => {
@@ -207,15 +213,27 @@ export function mountEditor(
     if (box.isConnected) previewBtn.disabled = !validateSong(song)
   }
 
+  let starting = false
+  let disposed = false
+
   async function togglePreview(): Promise<void> {
+    if (starting) return
     if (preview) {
       stopPreview()
       return
     }
     if (!validateSong(song)) return
-    // Created lazily inside the click handler so the browser allows audio.
-    ctx ??= new AudioContext()
-    await ctx.resume()
+    starting = true
+    try {
+      // Created lazily inside the click handler so the browser allows audio.
+      ctx ??= new AudioContext()
+      await ctx.resume()
+    } catch {
+      starting = false
+      return
+    }
+    starting = false
+    if (disposed || !ctx) return
     preview = playSong(song, ctx)
     previewBtn.textContent = 'Stop'
     const last = song.notes.reduce((m, n) => Math.max(m, n.startBeat + n.beats), 0)
@@ -232,10 +250,11 @@ export function mountEditor(
   render()
 
   return () => {
+    disposed = true
     stopPreview()
     document.removeEventListener('pointermove', onMove)
     document.removeEventListener('pointerup', onUp)
-    document.removeEventListener('pointercancel', onUp)
+    document.removeEventListener('pointercancel', onCancel)
     void ctx?.close().catch(() => {})
     ctx = null
   }

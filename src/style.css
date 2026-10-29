@@ -51,7 +51,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); col
 .editor-bpm { font: inherit; width: 5rem; padding: 0.4rem; border: 1px solid var(--border); border-radius: 6px; }
 .editor-status { color: var(--muted); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.editor-scroll { max-height: 65vh; overflow: auto; border: 1px solid var(--border); border-radius: 6px; background: var(--card); touch-action: pan-x; }
+.editor-scroll { max-height: 65vh; overflow: auto; border: 1px solid var(--border); border-radius: 6px; background: var(--card); }
 .editor-grid { display: grid; width: max-content; user-select: none; }
 .editor-head {
   position: sticky; top: 0; z-index: 1; background: var(--card); font-size: 0.7rem; text-align: center;
