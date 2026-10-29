@@ -50,7 +50,7 @@ describe('GameSession', () => {
     const s = new GameSession(song, 'keyboard', START)
     s.noteOn('G4', T0)
     s.noteOn('A4', T0 + 1000 + 60)
-    s.tick(T0 + 2000)
+    s.tick(T0 + 2000 + SETTINGS.keyboard.tickLagMs)
     expect(s.status).toBe('won')
     const expected = computeResults(
       s.tiles,
@@ -84,9 +84,29 @@ describe('GameSession', () => {
     expect(s.judge.hits).toEqual([{ index: 0, offsetMs: 200, fullHold: false }])
   })
 
-  it('keyboard mode ticks with no lag', () => {
+  it('recorder mode survives a ~50 ms frame gap near the late edge', () => {
+    // Player starts at T0+240 (inside the 250 ms window). The tracker reports it after
+    // steadyMs (40) + half the analysis window (~23) + a 50 ms gap in mic frames, so the
+    // event lands around T0+353; the game loop may tick once more (T0+370) before it.
+    const s = new GameSession(song, 'recorder', START)
+    s.tick(T0 + 370)
+    expect(s.status).toBe('playing')
+    s.noteOn('G4', T0 + 240)
+    expect(s.status).toBe('playing')
+    expect(s.judge.hits).toEqual([{ index: 0, offsetMs: 240, fullHold: false }])
+  })
+
+  it('keyboard mode ticks 30 ms behind, so a keydown queued behind a frame still counts', () => {
     const s = new GameSession(song, 'keyboard', START)
-    s.tick(T0 + 151)
+    s.tick(T0 + 175)
+    expect(s.status).toBe('playing')
+    s.noteOn('G4', T0 + 145)
+    expect(s.judge.hits).toEqual([{ index: 0, offsetMs: 145, fullHold: false }])
+  })
+
+  it('keyboard mode still loses too-late once the lagged tick passes the window', () => {
+    const s = new GameSession(song, 'keyboard', START)
+    s.tick(T0 + 181)
     expect(s.status).toBe('lost')
     expect(s.judge.loss?.reason).toBe('too-late')
   })

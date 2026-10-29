@@ -8,9 +8,11 @@ export interface ModeSettings {
 }
 
 export const SETTINGS: Record<Mode, ModeSettings> = {
-  keyboard: { startWindowMs: 150, endAllowanceMs: 150, tickLagMs: 0 },
-  // tickLagMs covers the tracker's steadyMs + half the analysis window + one frame.
-  recorder: { startWindowMs: 250, endAllowanceMs: 200, tickLagMs: 100 },
+  // tickLagMs: a keydown can be queued behind a rAF tick, so its timeStamp predates the tick.
+  keyboard: { startWindowMs: 150, endAllowanceMs: 150, tickLagMs: 30 },
+  // tickLagMs covers the tracker's steadyMs (40) + half the analysis window (~23 ms) + gaps
+  // between mic frames of up to ~80 ms (a dropped rAF or two).
+  recorder: { startWindowMs: 250, endAllowanceMs: 200, tickLagMs: 150 },
 }
 
 export const SCORING = {

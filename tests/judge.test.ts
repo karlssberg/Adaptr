@@ -13,8 +13,8 @@ const judge = () => new Judge(tiles, SETTINGS.keyboard)
 
 describe('settings', () => {
   test('mode settings', () => {
-    expect(SETTINGS.keyboard).toEqual({ startWindowMs: 150, endAllowanceMs: 150, tickLagMs: 0 })
-    expect(SETTINGS.recorder).toEqual({ startWindowMs: 250, endAllowanceMs: 200, tickLagMs: 100 })
+    expect(SETTINGS.keyboard).toEqual({ startWindowMs: 150, endAllowanceMs: 150, tickLagMs: 30 })
+    expect(SETTINGS.recorder).toEqual({ startWindowMs: 250, endAllowanceMs: 200, tickLagMs: 150 })
   })
 })
 
