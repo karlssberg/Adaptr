@@ -1,6 +1,8 @@
 import './style.css'
 import { mountGame } from './ui/gameScreen'
-import { mountMenu } from './ui/menuScreen'
+import { mountEditor } from './ui/editorScreen'
+import { loadMode, mountMenu } from './ui/menuScreen'
+import { newSong } from './editor/editorModel'
 import { mountMicCheck } from './ui/micCheckScreen'
 import { mountResults } from './ui/resultsScreen'
 import type { Mode } from './game/settings'
@@ -51,21 +53,13 @@ function showMicCheck(): void {
   show(() => mountMicCheck(root, showMenu))
 }
 
-// Placeholder: replaced by the song editor in Task 11.
 function showEditor(song?: Song): void {
-  show(() => {
-    const box = document.createElement('div')
-    box.className = 'menu'
-    const p = document.createElement('p')
-    p.textContent = song ? `Editor for "${song.name}" is coming soon.` : 'Song editor is coming soon.'
-    const back = document.createElement('button')
-    back.type = 'button'
-    back.className = 'btn'
-    back.textContent = 'Back'
-    back.addEventListener('click', showMenu)
-    box.append(p, back)
-    root.append(box)
-  })
+  show(() =>
+    mountEditor(root, song ?? newSong(), {
+      tryIt: (s) => showGame(s, loadMode()),
+      back: showMenu,
+    }),
+  )
 }
 
 showMenu()
