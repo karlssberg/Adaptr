@@ -1,7 +1,7 @@
 import './style.css'
 import { mountGame } from './ui/gameScreen'
 import { mountEditor } from './ui/editorScreen'
-import { loadMode, mountMenu } from './ui/menuScreen'
+import { loadMode, mountMenu, saveMode } from './ui/menuScreen'
 import { newSong } from './editor/editorModel'
 import { mountMicCheck } from './ui/micCheckScreen'
 import { mountResults } from './ui/resultsScreen'
@@ -12,6 +12,8 @@ import { getBest, loadUserSongs, recordScore, safeLocalStorage } from './songs/s
 
 const root = document.querySelector<HTMLDivElement>('#app')!
 let cleanup: (() => void) | null = null
+/** The menu's mode, kept here too so it survives a localStorage that throws. */
+let mode: Mode = loadMode()
 
 function show(mount: () => (() => void) | void): void {
   cleanup?.()
@@ -23,26 +25,35 @@ function show(mount: () => (() => void) | void): void {
 function showMenu(): void {
   show(() => {
     const st = safeLocalStorage()
-    mountMenu(root, [...BUILTIN_SONGS, ...loadUserSongs(st)], (id, m) => getBest(st, id, m), {
-      play: showGame,
+    mountMenu(root, [...BUILTIN_SONGS, ...loadUserSongs(st)], (id, m) => getBest(st, id, m), mode, {
+      play: (song, m) => showGame(song, m),
       micCheck: showMicCheck,
-      edit: showEditor,
+      edit: (song) => showEditor(song),
+      setMode: (m) => {
+        mode = m
+        saveMode(m)
+      },
     })
   })
 }
 
-function showGame(song: Song, mode: Mode): void {
+/**
+ * Plays `song`. With `backToEditor` (a Try it from the editor) every way out returns to
+ * the editor instead of the menu, and no best score is recorded for the draft.
+ */
+function showGame(song: Song, gameMode: Mode, backToEditor?: () => void): void {
+  const back = backToEditor ?? showMenu
   show(() =>
-    mountGame(root, song, mode, (results, loss) => {
+    mountGame(root, song, gameMode, (results, loss) => {
       if (!results) {
-        showMenu()
+        back()
         return
       }
-      const isNewBest = recordScore(safeLocalStorage(), song.id, mode, results.score)
+      const isNewBest = backToEditor ? false : recordScore(safeLocalStorage(), song.id, gameMode, results.score)
       show(() => {
-        mountResults(root, song, mode, results, loss, isNewBest, {
-          retry: () => showGame(song, mode),
-          menu: showMenu,
+        mountResults(root, song, gameMode, results, loss, isNewBest, backToEditor ? 'editor' : 'menu', {
+          retry: () => showGame(song, gameMode, backToEditor),
+          back,
         })
       })
     }),
@@ -53,10 +64,10 @@ function showMicCheck(): void {
   show(() => mountMicCheck(root, showMenu))
 }
 
-function showEditor(song?: Song): void {
+function showEditor(song?: Song, dirty = false): void {
   show(() =>
-    mountEditor(root, song ?? newSong(), {
-      tryIt: (s) => showGame(s, loadMode()),
+    mountEditor(root, song ?? newSong(), dirty, {
+      tryIt: (s, unsaved) => showGame(s, mode, () => showEditor(s, unsaved)),
       back: showMenu,
     }),
   )

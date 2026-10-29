@@ -25,13 +25,21 @@ function button(className: string, text: string, onClick: () => void): HTMLButto
   return b
 }
 
-/** Renders the grid editor into `root`; returns a cleanup that stops any preview. */
+const copySong = (s: Song): Song => ({ ...s, notes: s.notes.map((n) => ({ ...n })) })
+
+/**
+ * Renders the grid editor into `root`; returns a cleanup that stops any preview.
+ * `dirty` says whether `initial` has unsaved changes (true when reopening after Try it);
+ * `tryIt` receives a copy of the song and that flag so the editor can be restored as it was.
+ */
 export function mountEditor(
   root: HTMLElement,
   initial: Song,
-  actions: { tryIt(song: Song): void; back(): void },
+  dirty: boolean,
+  actions: { tryIt(song: Song, dirty: boolean): void; back(): void },
 ): () => void {
-  const song: Song = { ...initial, notes: initial.notes.map((n) => ({ ...n })) }
+  const song = copySong(initial)
+  let unsaved = dirty
   const store = safeLocalStorage()
   const isSaved = () => loadUserSongs(store).some((s) => s.id === song.id)
 
@@ -54,12 +62,15 @@ export function mountEditor(
   const status = el('span', 'editor-status')
   bar.append(nameInput, bpmLabel)
 
-  const backBtn = button('btn', 'Back', () => actions.back())
+  const backBtn = button('btn', 'Back', () => {
+    if (unsaved && !confirm('Discard unsaved changes?')) return
+    actions.back()
+  })
   const previewBtn = button('btn', 'Preview', () => void togglePreview())
   const saveBtn = button('btn btn-primary', 'Save', () => save())
   const tryBtn = button('btn', 'Try it', () => {
     stopPreview()
-    if (validateSong(song)) actions.tryIt(song)
+    if (validateSong(song)) actions.tryIt(copySong(song), unsaved)
   })
   const deleteBtn = button('btn', 'Delete', () => {
     if (!confirm(`Delete "${song.name}"?`)) return
@@ -140,6 +151,7 @@ export function mountEditor(
   }
 
   const changed = () => {
+    unsaved = true
     status.textContent = ''
     render()
   }
@@ -193,6 +205,7 @@ export function mountEditor(
   // --- inputs ---
   nameInput.addEventListener('input', () => {
     song.name = nameInput.value
+    unsaved = true
     status.textContent = ''
   })
   bpmInput.addEventListener('input', () => {
@@ -242,7 +255,9 @@ export function mountEditor(
 
   function save(): void {
     if (!validateSong(song)) return
-    status.textContent = saveUserSong(store, song) ? 'Saved' : "Couldn't save"
+    const ok = saveUserSong(store, song)
+    if (ok) unsaved = false
+    status.textContent = ok ? 'Saved' : "Couldn't save"
     deleteBtn.hidden = !isSaved()
   }
 

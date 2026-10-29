@@ -17,7 +17,10 @@ function el(tag: string, className: string, text?: string): HTMLElement {
   return e
 }
 
-/** Renders the results of one play into `root`. */
+/**
+ * Renders the results of one play into `root`. `backTo` picks the second button: "Menu",
+ * or "Back to editor" for a game started from the editor's Try it.
+ */
 export function mountResults(
   root: HTMLElement,
   song: Song,
@@ -25,7 +28,8 @@ export function mountResults(
   results: Results,
   loss: Judge['loss'],
   isNewBest: boolean,
-  actions: { retry(): void; menu(): void },
+  backTo: 'menu' | 'editor',
+  actions: { retry(): void; back(): void },
 ): void {
   const box = el('div', 'results')
   box.append(el('h2', 'results-title', song.name))
@@ -50,12 +54,15 @@ export function mountResults(
 
   const buttons = el('div', 'results-actions')
   const retry = el('button', 'results-retry', 'Retry') as HTMLButtonElement
-  const menu = el('button', 'results-menu', 'Menu') as HTMLButtonElement
+  const back =
+    backTo === 'editor'
+      ? (el('button', 'results-editor', 'Back to editor') as HTMLButtonElement)
+      : (el('button', 'results-menu', 'Menu') as HTMLButtonElement)
   retry.type = 'button'
-  menu.type = 'button'
+  back.type = 'button'
   retry.addEventListener('click', () => actions.retry())
-  menu.addEventListener('click', () => actions.menu())
-  buttons.append(retry, menu)
+  back.addEventListener('click', () => actions.back())
+  buttons.append(retry, back)
   box.append(buttons)
 
   root.replaceChildren(box)

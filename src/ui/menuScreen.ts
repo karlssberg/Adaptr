@@ -11,7 +11,7 @@ export function loadMode(): Mode {
   }
 }
 
-function saveMode(m: Mode): void {
+export function saveMode(m: Mode): void {
   try {
     window.localStorage.setItem(MODE_KEY, m)
   } catch {
@@ -37,14 +37,24 @@ function button(className: string, text: string, onClick: () => void): HTMLButto
   return b
 }
 
-/** Renders the song list, mode toggle and navigation buttons into `root`. */
+/**
+ * Renders the song list, mode toggle and navigation buttons into `root`. The caller owns
+ * the selected mode (`initialMode`, updated through `actions.setMode`) so it survives even
+ * when localStorage is unavailable.
+ */
 export function mountMenu(
   root: HTMLElement,
   songs: Song[],
   best: (id: string, m: Mode) => number | null,
-  actions: { play(song: Song, mode: Mode): void; micCheck(): void; edit(song?: Song): void },
+  initialMode: Mode,
+  actions: {
+    play(song: Song, mode: Mode): void
+    micCheck(): void
+    edit(song?: Song): void
+    setMode(m: Mode): void
+  },
 ): void {
-  let mode = loadMode()
+  let mode = initialMode
   const box = el('div', 'menu')
   box.append(el('h1', 'menu-title', 'Recorder Tiles'))
 
@@ -63,7 +73,7 @@ export function mountMenu(
     input.addEventListener('change', () => {
       if (!input.checked) return
       mode = value
-      saveMode(value)
+      actions.setMode(value)
     })
     wrap.append(input, document.createTextNode(label))
     modes.append(wrap)
