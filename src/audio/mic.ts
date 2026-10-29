@@ -21,6 +21,26 @@ function failure(e: unknown): MicResult {
   return { ok: false, message: "Couldn't start the microphone." }
 }
 
+/** How long AudioContext.resume() may take before we give up. */
+const RESUME_TIMEOUT_MS = 2000
+
+/**
+ * Some browsers leave resume() pending indefinitely (e.g. no qualifying user gesture).
+ * Rather than hang on "Starting microphone…" — or start a game that hears only the silence
+ * of a suspended context — we fail after RESUME_TIMEOUT_MS with the generic message.
+ */
+async function resumeOrFail(ctx: AudioContext): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error('AudioContext.resume() timed out')), RESUME_TIMEOUT_MS)
+  })
+  try {
+    await Promise.race([ctx.resume(), timeout])
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 export async function startMic(onFrame: (f: Frame) => void, deps: MicDeps = {}): Promise<MicResult> {
   const getUserMedia =
     'getUserMedia' in deps
@@ -38,7 +58,7 @@ export async function startMic(onFrame: (f: Frame) => void, deps: MicDeps = {}):
     })
     const Ctor = deps.AudioContextCtor ?? AudioContext
     ctx = new Ctor()
-    if (ctx.state === 'suspended') await ctx.resume()
+    if (ctx.state === 'suspended') await resumeOrFail(ctx)
     const analyser = ctx.createAnalyser()
     analyser.fftSize = SIZE
     ctx.createMediaStreamSource(stream).connect(analyser)

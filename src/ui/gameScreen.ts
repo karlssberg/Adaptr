@@ -24,7 +24,8 @@ const COLORS = {
 
 /**
  * Mounts the falling-tiles game in `root`. Calls `onEnd` once: with results (and the loss)
- * ~600 ms after the song is won or lost, or with null if abandoned or the mic fails.
+ * ~600 ms after the song is won or lost, or with null if abandoned (Escape, the Back button
+ * while the mic starts or after it fails, or the tab is hidden).
  * Returns a cleanup function (idempotent).
  */
 export function mountGame(
@@ -79,11 +80,22 @@ export function mountGame(
     onEnd(r, loss)
   }
 
-  const onVisibility = () => {
-    if (document.visibilityState !== 'hidden') return
+  /** Leave now: results if the song already ended (lingering), otherwise abandon. */
+  const quit = () => {
     if (session && endAt !== null) return finish(session.results(), session.judge.loss)
     session?.abandon()
     finish(null)
+  }
+
+  const onVisibility = () => {
+    if (document.visibilityState === 'hidden') quit()
+  }
+
+  // Escape is never a lane key, so it is safe to use in keyboard mode too.
+  const onEscape = (e: KeyboardEvent) => {
+    if (e.key !== 'Escape') return
+    e.preventDefault()
+    quit()
   }
 
   const frame = () => {
@@ -188,12 +200,14 @@ export function mountGame(
     stopInput()
     observer.disconnect()
     document.removeEventListener('visibilitychange', onVisibility)
+    window.removeEventListener('keydown', onEscape)
   }
 
   root.append(canvas)
   resize()
   observer.observe(root)
   document.addEventListener('visibilitychange', onVisibility)
+  window.addEventListener('keydown', onEscape)
 
   if (mode === 'keyboard') {
     begin()
@@ -212,7 +226,17 @@ export function mountGame(
     const status = document.createElement('p')
     status.className = 'game-status'
     status.textContent = 'Starting microphone…'
-    root.append(status)
+    // Back abandons while the mic starts (a later-resolving mic is stopped below) and
+    // stays as the way out if it fails.
+    const back = document.createElement('button')
+    back.type = 'button'
+    back.className = 'btn game-back'
+    back.textContent = 'Back'
+    back.addEventListener('click', () => quit())
+    const overlay = document.createElement('div')
+    overlay.className = 'game-overlay'
+    overlay.append(status, back)
+    root.append(overlay)
     let tracker: NoteTracker | null = null
     void startMic((f) => tracker?.push(f)).then((mic) => {
       if (!mic.ok) {
@@ -220,15 +244,10 @@ export function mountGame(
         canvas.remove()
         status.className = 'game-error'
         status.textContent = mic.message
-        const back = document.createElement('button')
-        back.type = 'button'
-        back.textContent = 'Back'
-        back.addEventListener('click', () => finish(null))
-        root.append(back)
         return
       }
       if (disposed) return mic.stop()
-      status.remove()
+      overlay.remove()
       stopMic = mic.stop
       begin()
       tracker = new NoteTracker(session!)
