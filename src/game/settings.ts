@@ -9,3 +9,13 @@ export const SETTINGS: Record<Mode, ModeSettings> = {
   keyboard: { startWindowMs: 150, endAllowanceMs: 150 },
   recorder: { startWindowMs: 250, endAllowanceMs: 200 },
 }
+
+export const SCORING = {
+  perfectFrac: 0.35,
+  greatFrac: 0.7,
+  points: { perfect: 300, great: 200, good: 100 },
+  comboStep: 10,
+  comboCap: 100,
+  holdBonus: 50,
+  holdTileMinMs: 400,
+}
