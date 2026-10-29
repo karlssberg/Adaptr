@@ -1,0 +1,91 @@
+import { spawn } from 'node:child_process'
+import { createRequire } from 'node:module'
+
+const require = createRequire(import.meta.url)
+let chromium
+try {
+  ;({ chromium } = require('playwright'))
+} catch {
+  ;({ chromium } = require('/opt/node22/lib/node_modules/playwright'))
+}
+
+const URL = 'http://localhost:4173/'
+const SONGS = ['Hot Cross Buns', 'Mary Had a Little Lamb']
+
+async function waitForServer(timeoutMs = 30000) {
+  const end = Date.now() + timeoutMs
+  while (Date.now() < end) {
+    try {
+      const res = await fetch(URL)
+      if (res.ok) return
+    } catch {
+      // not up yet
+    }
+    await new Promise((r) => setTimeout(r, 250))
+  }
+  throw new Error('preview server did not start')
+}
+
+function check(name, ok) {
+  if (!ok) throw new Error(`check failed: ${name}`)
+  console.log(`✓ ${name}`)
+}
+
+async function listsBoth(page) {
+  const text = await page.locator('body').innerText()
+  return SONGS.every((s) => text.includes(s))
+}
+
+const server = spawn('npx', ['vite', 'preview', '--port', '4173', '--strictPort'], {
+  stdio: 'ignore',
+  detached: true,
+})
+let browser
+let code = 0
+try {
+  await waitForServer()
+  browser = await chromium.launch()
+  const context = await browser.newContext()
+  const page = await context.newPage()
+  const pageErrors = []
+  page.on('pageerror', (e) => pageErrors.push(e))
+
+  await page.goto(URL)
+  await page.getByText('Hot Cross Buns').waitFor()
+  check('menu lists both built-in songs', await listsBoth(page))
+
+  await page.getByLabel('Keyboard').check()
+  await page
+    .locator('.song-row', { hasText: 'Hot Cross Buns' })
+    .getByRole('button', { name: 'Play' })
+    .click()
+  await page.keyboard.press('a')
+  await page.getByText('Wrong note').waitFor({ timeout: 5000 })
+  check('wrong key in keyboard mode ends the game with "Wrong note"', true)
+
+  await context.addInitScript(() => {
+    Storage.prototype.getItem = () => {
+      throw new Error('storage blocked')
+    }
+    Storage.prototype.setItem = () => {
+      throw new Error('storage blocked')
+    }
+  })
+  await page.reload()
+  await page.getByText('Hot Cross Buns').waitFor()
+  check('built-in songs listed when localStorage throws', await listsBoth(page))
+
+  check('no page errors', pageErrors.length === 0)
+} catch (e) {
+  console.error(`✗ ${e.message}`)
+  code = 1
+} finally {
+  if (browser) await browser.close().catch(() => {})
+  // kill the whole process group: npx spawns vite as a child
+  try {
+    process.kill(-server.pid)
+  } catch {
+    server.kill()
+  }
+}
+process.exit(code)

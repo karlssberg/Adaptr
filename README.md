@@ -1,1 +1,60 @@
-# Adaptr
+# Recorder Tiles
+
+A rhythm game in the style of Magic Tiles. Notes fall down lanes and you play
+them on time, either on your computer keyboard or on a real recorder picked up
+by your microphone. The first mistake ends the song. There is also a song
+editor for making your own tunes.
+
+## Requirements
+
+- Node 22 or newer
+- A desktop browser
+- For recorder mode: the page must be served from `localhost` or HTTPS, or the
+  browser will not allow microphone access
+
+## Commands
+
+```
+npm install
+npm run dev                  # start the dev server
+npm test                     # unit tests
+npm run build && npm run e2e # production build, then browser smoke test
+```
+
+The smoke test uses Playwright, which is not a project dependency. It looks for
+a globally installed copy.
+
+## How to play
+
+Pick a song and a mode on the menu, then press Play.
+
+**Keyboard mode.** Each lane shows the key to press. Press it as the note
+reaches the hit line, and hold it for long notes.
+
+**Recorder mode.** Play the notes on your recorder. Run **Mic check** from the
+menu first to confirm the game hears you and to see which note it detects.
+Tongue repeated notes (a short "tu") so the game can tell them apart.
+
+The first mistake loses: a wrong note, playing too early or too late, or
+letting go of a long note early.
+
+Hits are rated by timing:
+
+- **Perfect**: right on the beat
+- **Great**: slightly off
+- **Good**: a bit further off, still counts
+
+Better ratings score more.
+
+## Song editor
+
+Choose **New song** on the menu (or **Edit** on one of your own songs) to write
+a song note by note, preview it and save it. Songs are stored in your browser.
+Built-in songs cannot be edited.
+
+## Tuning
+
+Timing windows and scoring live in `src/game/settings.ts`. Pitch detection
+for recorder mode lives in `src/audio/trackerSettings.ts`. Recorder detection
+was tuned on synthetic audio only, never on a real recorder, so you may need to
+adjust these values for your instrument and microphone.
