@@ -12,9 +12,10 @@ try {
 const URL = 'http://localhost:4173/'
 const SONGS = ['Hot Cross Buns', 'Mary Had a Little Lamb']
 
-async function waitForServer(timeoutMs = 30000) {
+async function waitForServer(exited, timeoutMs = 30000) {
   const end = Date.now() + timeoutMs
   while (Date.now() < end) {
+    if (exited.done) throw new Error('vite preview exited early (port 4173 in use?)')
     try {
       const res = await fetch(URL)
       if (res.ok) return
@@ -36,14 +37,28 @@ async function listsBoth(page) {
   return SONGS.every((s) => text.includes(s))
 }
 
+// Refuse to run against a stale server already holding the port.
+const portBusy = await fetch(URL).then(
+  () => true,
+  () => false,
+)
+if (portBusy) {
+  console.error('✗ port 4173 already in use')
+  process.exit(1)
+}
+
 const server = spawn('npx', ['vite', 'preview', '--port', '4173', '--strictPort'], {
   stdio: 'ignore',
   detached: true,
 })
+const exited = { done: false }
+server.on('exit', () => {
+  exited.done = true
+})
 let browser
 let code = 0
 try {
-  await waitForServer()
+  await waitForServer(exited)
   browser = await chromium.launch()
   const context = await browser.newContext()
   const page = await context.newPage()

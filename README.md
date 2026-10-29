@@ -48,9 +48,18 @@ Better ratings score more.
 
 ## Song editor
 
-Choose **New song** on the menu (or **Edit** on one of your own songs) to write
-a song note by note, preview it and save it. Songs are stored in your browser.
-Built-in songs cannot be edited.
+Choose **New song** on the menu (or **Edit** on one of your own songs). Each
+column is a recorder note and each row is a step in time.
+
+- Click an empty cell to add a note.
+- Drag down from a note's first cell to make it longer.
+- Click a note to remove it.
+- Set the song name and BPM in the fields at the top.
+- **Preview** plays the song (press again to stop), **Try it** plays it as a
+  game, **Save** stores it, and **Delete** removes it (shown only for saved
+  songs).
+
+Songs are stored in this browser only. Built-in songs cannot be edited.
 
 ## Tuning
 
